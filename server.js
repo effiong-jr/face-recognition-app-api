@@ -55,10 +55,25 @@ app.post('/register', (req, res) => {
 	}
 })
 
-app.get('/profile/:userId', (req, res) => {
-	const userId = req.params.userId
-	const user = database.users.filter((user) => user.id === userId)
-	res.json(user)
+app.get('/profile/:id', (req, res) => {
+	const { id } = req.params
+	const user = database.users.filter((user) => user.id === id)[0]
+	if (user) {
+		res.json(user)
+	} else {
+		res.status(404).json({ message: 'No user found' })
+	}
+})
+
+app.put('/image', (req, res) => {
+	const { id } = req.body
+	const user = database.users.filter((user) => user.id === id)[0]
+	if (user) {
+		user.entries++
+		res.json(user.entries)
+	} else {
+		res.status(404).json({ message: 'User not found' })
+	}
 })
 
 app.listen(5000, () => console.log('Server started and port 5000'))
