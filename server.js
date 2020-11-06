@@ -1,6 +1,9 @@
 const express = require('express')
+const cors = require('cors')
 
 const app = express()
+
+app.use(cors())
 app.use(express.json())
 
 const database = {
@@ -29,6 +32,7 @@ app.get('/', (req, res) => {
 })
 
 app.post('/signin', (req, res) => {
+	console.log(req.body)
 	if (
 		req.body.email === database.users[0].email &&
 		req.body.password === database.users[0].password
@@ -49,7 +53,10 @@ app.post('/register', (req, res) => {
 		}
 		database.users.push(newUser)
 
-		res.status(201).json(database.users[database.users.length - 1])
+		res.status(201).json({
+			message: 'success',
+			user: database.users[database.users.length - 1],
+		})
 	} catch {
 		res.status(400).json({ message: 'Error Creating User' })
 	}
