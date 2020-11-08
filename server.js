@@ -1,5 +1,16 @@
 const express = require('express')
 const cors = require('cors')
+const knex = require('knex')
+
+const db = knex({
+	client: 'pg',
+	connection: {
+		host: '127.0.0.1',
+		user: 'postgres',
+		password: 'division1',
+		database: 'smart-brain',
+	},
+})
 
 const app = express()
 
@@ -32,26 +43,36 @@ app.get('/', (req, res) => {
 })
 
 app.post('/signin', (req, res) => {
-	console.log(req.body)
+	const { email, password } = req.body
+
+	const user = database.users.filter(
+		(user) => user.email === email && user.password === password
+	)[0]
 	if (
-		req.body.email === database.users[0].email &&
-		req.body.password === database.users[0].password
+		user
+		// email === database.users[0].email &&
+		// password === database.users[0].password
 	) {
-		res.json({ message: 'Success' })
+		const { id, name, email, entries, joined } = user
+		res.json({
+			message: 'Success',
+			user: { id, name, email, entries, joined },
+		})
 	} else {
 		res.status(400).json({ message: 'Error Logging in' })
 	}
 })
 
 app.post('/register', (req, res) => {
+	const { name, email, password } = req.body
 	try {
-		const newUser = {
-			id: '125',
-			...req.body,
-			entries: 0,
-			joined: new Date(),
-		}
-		database.users.push(newUser)
+		db('users')
+			.insert({
+				name,
+				email,
+				joined: new Date(),
+			})
+			.then(console.log)
 
 		res.status(201).json({
 			message: 'success',
@@ -77,22 +98,11 @@ app.put('/image', (req, res) => {
 	const user = database.users.filter((user) => user.id === id)[0]
 	if (user) {
 		user.entries++
-		res.json(user.entries)
+		console.log(user)
+		res.send({ entries: user.entries })
 	} else {
 		res.status(404).json({ message: 'User not found' })
 	}
 })
 
 app.listen(5000, () => console.log('Server started and port 5000'))
-
-/*
-End points
-
-/ => GET = res = Home page
-/signin => POST = user
-/register => POST = user
-/profile/:userId -> GET = user
-/image => PUT = user 
-
-
-*/
