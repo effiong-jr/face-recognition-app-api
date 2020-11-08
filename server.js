@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const knex = require('knex')
+const { response, json } = require('express')
 
 const db = knex({
 	client: 'pg',
@@ -45,64 +46,70 @@ app.get('/', (req, res) => {
 app.post('/signin', (req, res) => {
 	const { email, password } = req.body
 
-	const user = database.users.filter(
-		(user) => user.email === email && user.password === password
-	)[0]
-	if (
-		user
-		// email === database.users[0].email &&
-		// password === database.users[0].password
-	) {
-		const { id, name, email, entries, joined } = user
-		res.json({
-			message: 'Success',
-			user: { id, name, email, entries, joined },
+	db('users')
+		.where({
+			email,
+			// password,
 		})
-	} else {
-		res.status(400).json({ message: 'Error Logging in' })
-	}
+		.select('id', 'name', 'entries', 'joined')
+		.then((user) => {
+			res.json({ message: 'Success', user: user[0] })
+		})
+		.catch((error) => {
+			res.status(400).json({ message: 'Error signin in' })
+		})
 })
 
 app.post('/register', (req, res) => {
 	const { name, email, password } = req.body
-	try {
-		db('users')
-			.insert({
-				name,
-				email,
-				joined: new Date(),
-			})
-			.then(console.log)
-
-		res.status(201).json({
-			message: 'success',
-			user: database.users[database.users.length - 1],
+	db('users')
+		.returning('*')
+		.insert({
+			name,
+			email,
+			joined: new Date(),
 		})
-	} catch {
-		res.status(400).json({ message: 'Error Creating User' })
-	}
+		.then((user) => {
+			res.status(201).json(user[0])
+		})
+		.catch((error) => {
+			if (error.code === '23505') {
+				res.status(400).json({ message: 'User already exist.' })
+			} else {
+				res.status(400).json({ message: 'Registration failed!' })
+			}
+		})
 })
 
 app.get('/profile/:id', (req, res) => {
 	const { id } = req.params
-	const user = database.users.filter((user) => user.id === id)[0]
-	if (user) {
-		res.json(user)
-	} else {
-		res.status(404).json({ message: 'No user found' })
-	}
+
+	db('users')
+		.where({ id })
+		.then((data) => {
+			if (!data[0]) {
+				res.status(404).json({ message: 'User not found.' })
+			}
+			res.json(data)
+		})
+		.catch((error) => {
+			console.log(error)
+			res.status(400).json({ error: 'There was an error' })
+		})
 })
 
 app.put('/image', (req, res) => {
 	const { id } = req.body
-	const user = database.users.filter((user) => user.id === id)[0]
-	if (user) {
-		user.entries++
-		console.log(user)
-		res.send({ entries: user.entries })
-	} else {
-		res.status(404).json({ message: 'User not found' })
-	}
+	db('users')
+		.where('id', '=', id)
+		.increment('entries', 1)
+		.returning('entries')
+		.then((entries) => {
+			res.json(entries[0])
+		})
+		.catch((error) => {
+			res.status(400).json({ message: 'An error occured' })
+		})
 })
 
 app.listen(5000, () => console.log('Server started and port 5000'))
